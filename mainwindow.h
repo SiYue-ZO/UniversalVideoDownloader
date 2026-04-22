@@ -33,6 +33,7 @@ private:
     QPushButton *analyzeBtn;
     QPushButton *downloadBtn;
     QComboBox *resolutionBox;
+    QComboBox *cookieBox;
     QTextEdit *logConsole;
     QProgressBar *progressBar;
 
