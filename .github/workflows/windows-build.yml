@@ -30,10 +30,15 @@ jobs:
       - name: Deploy Qt Dependencies
         shell: pwsh
         run: |
-          # 自动寻找生成的 exe 并提取依赖 dll
-          $EXE_PATH = Get-ChildItem -Path build -Filter "*.exe" -Recurse | Select-Object -First 1
+          # 精确查找你的目标 exe，避免抓取到 CMake 的临时文件
+          $EXE_PATH = Get-ChildItem -Path build -Filter "UniversalVideoDownloader.exe" -Recurse | Select-Object -First 1
+          
           if ($EXE_PATH) {
+              Write-Host "成功找到目标程序: $($EXE_PATH.FullName)"
               windeployqt $EXE_PATH.FullName
+          } else {
+              Write-Error "未找到 UniversalVideoDownloader.exe，请检查编译步骤是否成功！"
+              exit 1
           }
 
       - name: Upload Artifact
