@@ -16,6 +16,8 @@ add_executable(UniversalVideoDownloader
     platformutils.h
     toolmanager.cpp
     toolmanager.h
+    url_extractor.cpp
+    url_extractor.h
 )
 
 target_link_libraries(UniversalVideoDownloader PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Network)

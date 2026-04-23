@@ -4,6 +4,7 @@
 #include <QFile>
 #include <QMessageBox>
 #include <QProcess>
+#include <QStandardPaths>
 
 ToolManager::ToolManager(QObject *parent)
     : QObject(parent)
@@ -49,34 +50,65 @@ bool ToolManager::needsFfmpeg() const {
     return !QFile::exists(localPath) && !QFile::exists(ffmpegPath);
 }
 
+bool ToolManager::hasYtdlpInPath() const {
+    return !QStandardPaths::findExecutable("yt-dlp").isEmpty();
+}
+
+bool ToolManager::hasFfmpegInPath() const {
+    return !QStandardPaths::findExecutable("ffmpeg").isEmpty();
+}
+
 void ToolManager::checkAndDownloadTools() {
-    // 仅在 Windows 平台自动下载
+    // 仅在 Windows 平台检测
     if (!PlatformUtils::isWindows()) {
         emit toolsReady();
         return;
     }
 
-    bool needYtdlp = needsYtdlp();
-    bool needFfmpeg = needsFfmpeg();
+    // 1. 先检查程序目录
+    QString appDir = PlatformUtils::getAppDir();
+    bool localYtdlp = QFile::exists(appDir + "/yt-dlp.exe");
+    bool localFfmpeg = QFile::exists(appDir + "/ffmpeg.exe");
 
-    if (!needYtdlp && !needFfmpeg) {
+    // 2. 再检查环境变量 PATH
+    bool pathYtdlp = hasYtdlpInPath();
+    bool pathFfmpeg = hasFfmpegInPath();
+
+    // 汇报检测结果
+    if (localYtdlp) {
+        emit logMessage("✅ 程序目录已存在 yt-dlp.exe");
+    } else if (pathYtdlp) {
+        emit logMessage("✅ 在系统环境变量 PATH 中找到 yt-dlp: "
+                        + QStandardPaths::findExecutable("yt-dlp"));
+    }
+    if (localFfmpeg) {
+        emit logMessage("✅ 程序目录已存在 ffmpeg.exe");
+    } else if (pathFfmpeg) {
+        emit logMessage("✅ 在系统环境变量 PATH 中找到 ffmpeg: "
+                        + QStandardPaths::findExecutable("ffmpeg"));
+    }
+
+    // 如果两者都已找到，无需下载
+    bool ytdlpOk = localYtdlp || pathYtdlp;
+    bool ffmpegOk = localFfmpeg || pathFfmpeg;
+
+    if (ytdlpOk && ffmpegOk) {
         emit toolsReady();
         return;
     }
 
-    // 提示用户
+    // 3. 缺少组件，询问用户是否下载
     QString missing;
-    if (needYtdlp) missing += "yt-dlp";
-    if (needFfmpeg) {
+    if (!ytdlpOk) missing += "yt-dlp";
+    if (!ffmpegOk) {
         if (!missing.isEmpty()) missing += " 和 ";
         missing += "ffmpeg";
     }
 
-    QString appDir = PlatformUtils::getAppDir();
     QMessageBox::StandardButton reply = QMessageBox::question(
         nullptr,
         "缺少必要组件",
-        QString("检测到程序目录下缺少 %1，是否自动下载？\n\n"
+        QString("检测到系统中缺少 %1，是否自动下载到程序目录？\n\n"
                 "下载位置：%2")
             .arg(missing, appDir),
         QMessageBox::Yes | QMessageBox::No

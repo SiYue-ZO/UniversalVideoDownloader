@@ -1,15 +1,21 @@
 #include "platformutils.h"
 #include <QCoreApplication>
 #include <QFile>
+#include <QStandardPaths>
 
 QString PlatformUtils::findYtdlpPath() {
 #ifdef Q_OS_WIN
-    // Windows: 优先查找程序所在目录
+    // 优先查找程序所在目录
     QString localPath = getAppDir() + "/yt-dlp.exe";
     if (QFile::exists(localPath)) {
         return localPath;
     }
-    return "yt-dlp.exe"; // 回退到系统 PATH
+    // 回退到系统环境变量 PATH
+    QString pathExe = QStandardPaths::findExecutable("yt-dlp");
+    if (!pathExe.isEmpty()) {
+        return pathExe;
+    }
+    return QString(); // 未找到
 #elif defined(Q_OS_MACOS)
     // macOS: 优先查找 Homebrew 安装路径
     QString homebrewPath = "/opt/homebrew/bin/yt-dlp";
@@ -24,10 +30,15 @@ QString PlatformUtils::findYtdlpPath() {
 
 QString PlatformUtils::findFfmpegPath() {
 #ifdef Q_OS_WIN
-    // Windows: 优先查找程序所在目录
+    // 优先查找程序所在目录
     QString localPath = getAppDir() + "/ffmpeg.exe";
     if (QFile::exists(localPath)) {
         return localPath;
+    }
+    // 回退到系统环境变量 PATH
+    QString pathExe = QStandardPaths::findExecutable("ffmpeg");
+    if (!pathExe.isEmpty()) {
+        return pathExe;
     }
     return QString(); // 未找到
 #elif defined(Q_OS_MACOS)

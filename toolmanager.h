@@ -55,6 +55,8 @@ private:
 
     bool needsYtdlp() const;
     bool needsFfmpeg() const;
+    bool hasYtdlpInPath() const;
+    bool hasFfmpegInPath() const;
     void downloadTool(const QString &toolName, const QString &url, const QString &savePath);
     void startDownloadQueue();
     void extractFfmpeg(const QString &zipPath);

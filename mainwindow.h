@@ -12,6 +12,7 @@
 #include <QCheckBox>
 
 class ToolManager;
+class UrlExtractor;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -30,6 +31,11 @@ private slots:
     void handleDownloadFinished(int exitCode, QProcess::ExitStatus exitStatus);
     void handleProcessError(QProcess::ProcessError error);
 
+    // URL 自动解析回调
+    void onUrlExtracted(const QString &extractedUrl);
+    void onUrlExtractFailed(const QString &pageUrl);
+    void onUrlExtractError(const QString &errorMsg);
+
 private:
     QLineEdit *urlInput;
     QLineEdit *nameInput;
@@ -38,6 +44,7 @@ private:
     QComboBox *resolutionBox;
     QComboBox *cookieBox;
     QCheckBox *playlistCheckBox;
+    QCheckBox *autoExtractCheckBox;
     QTextEdit *logConsole;
     QProgressBar *progressBar;
 
@@ -50,9 +57,11 @@ private:
     QString ffmpegPath;
 
     ToolManager *toolManager;
+    UrlExtractor *urlExtractor;
 
     void logMessage(const QString &msg);
     void setupToolManager();
+    void startYtdlpAnalyze();
 };
 
 #endif // MAINWINDOW_H

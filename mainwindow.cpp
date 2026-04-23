@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "platformutils.h"
 #include "toolmanager.h"
+#include "url_extractor.h"
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
@@ -40,6 +41,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     // --- 合集模式复选框 ---
     playlistCheckBox = new QCheckBox("合集模式");
     urlLayout->addWidget(playlistCheckBox);
+
+    // --- 自动解析 URL 复选框 ---
+    autoExtractCheckBox = new QCheckBox("自动解析");
+    autoExtractCheckBox->setToolTip("自动抓取网页HTML，从中提取视频链接 (m3u8/mp4等)");
+    autoExtractCheckBox->setChecked(true);
+    urlLayout->addWidget(autoExtractCheckBox);
 
     analyzeBtn = new QPushButton("🔍 解析视频");
     urlLayout->addWidget(analyzeBtn);
@@ -96,6 +103,15 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
     // 初始化工具管理器
     setupToolManager();
+
+    // 初始化 URL 提取器
+    urlExtractor = new UrlExtractor(this);
+    connect(urlExtractor, &UrlExtractor::urlFound,
+            this, &MainWindow::onUrlExtracted);
+    connect(urlExtractor, &UrlExtractor::noUrlFound,
+            this, &MainWindow::onUrlExtractFailed);
+    connect(urlExtractor, &UrlExtractor::errorOccurred,
+            this, &MainWindow::onUrlExtractError);
 }
 
 MainWindow::~MainWindow() {}
@@ -139,12 +155,44 @@ void MainWindow::onAnalyzeClicked() {
         return;
     }
 
-    logMessage("⏳ 正在尝试解析网页数据 (包含 Cookie 注入)...");
     analyzeBtn->setEnabled(false);
     downloadBtn->setEnabled(false);
     resolutionBox->clear();
     formatMap.clear();
 
+    // 自动解析：先抓取网页 HTML 提取视频 URL
+    if (autoExtractCheckBox->isChecked()) {
+        logMessage("🔍 正在自动解析网页，提取视频链接...");
+        urlExtractor->extract(currentUrl, cookieBox->currentText());
+        return;
+    }
+
+    // 直接使用 yt-dlp 解析
+    logMessage("⏳ 正在尝试解析网页数据 (包含 Cookie 注入)...");
+    startYtdlpAnalyze();
+}
+
+void MainWindow::onUrlExtracted(const QString &extractedUrl) {
+    logMessage("✅ 自动解析成功: " + extractedUrl);
+    currentUrl = extractedUrl;
+    logMessage("⏳ 正在使用 yt-dlp 获取视频详情...");
+    startYtdlpAnalyze();
+}
+
+void MainWindow::onUrlExtractFailed(const QString &pageUrl) {
+    Q_UNUSED(pageUrl)
+    logMessage("⚠️ 未从网页中提取到视频链接，尝试使用 yt-dlp 直接解析...");
+    logMessage("⏳ 正在尝试解析网页数据 (包含 Cookie 注入)...");
+    startYtdlpAnalyze();
+}
+
+void MainWindow::onUrlExtractError(const QString &errorMsg) {
+    logMessage("⚠️ " + errorMsg + "，尝试使用 yt-dlp 直接解析...");
+    logMessage("⏳ 正在尝试解析网页数据 (包含 Cookie 注入)...");
+    startYtdlpAnalyze();
+}
+
+void MainWindow::startYtdlpAnalyze() {
     QStringList args;
     QString browser = cookieBox->currentText();
     if (browser != "无") {
