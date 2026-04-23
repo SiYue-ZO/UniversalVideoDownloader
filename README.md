@@ -21,14 +21,16 @@
 | 🔊 **智能音视频合并** | 自动调用 FFmpeg 合并分离的音视频流，输出完整 `.mp4` |
 | ⬇️ **自动下载组件** | Windows 端首次启动自动下载 yt-dlp、ffmpeg 和 aria2c |
 | ⏹ **随时停止** | 支持在下载过程中随时终止任务 |
+| 💻 **终端模式** | 支持 CLI 命令行运行，无需 GUI，节省系统资源 |
 
 ---
 
 ## 📦 项目结构
 
 ```
-├── main.cpp              # 程序入口
-├── mainwindow.h/cpp      # 主窗口 UI 与业务逻辑
+├── main.cpp              # 程序入口（CLI/GUI 双模式路由）
+├── mainwindow.h/cpp      # 主窗口 UI 与业务逻辑（GUI 模式）
+├── cli_runner.h/cpp      # 终端模式（CLI 模式，无 GUI 开销）
 ├── url_extractor.h/cpp   # 网页解析模块（HTML 抓取 + 视频 URL 提取）
 ├── platformutils.h/cpp   # 平台抽象层（路径查找、平台检测）
 ├── toolmanager.h/cpp     # 工具下载管理器（自动下载/解压）
@@ -61,8 +63,11 @@ cd M3u8Downloader
 cmake -S . -B build
 cmake --build build
 
-# 运行
+# GUI 模式
 open build/UniversalVideoDownloader.app
+
+# 终端模式
+./build/UniversalVideoDownloader.app/Contents/MacOS/UniversalVideoDownloader -c <url>
 ```
 
 ---
@@ -86,7 +91,41 @@ open build/UniversalVideoDownloader.app
 
 ## 📖 使用指南
 
-### 基本下载
+### 终端模式（CLI）
+
+不启动 GUI，直接在终端运行，节省内存和 CPU 开销：
+
+```bash
+# 查看帮助
+UniversalVideoDownloader -h
+
+# 下载视频
+UniversalVideoDownloader -c https://www.bilibili.com/video/BV1xx411c7XX
+
+# 磁力下载
+UniversalVideoDownloader -c "magnet:?xt=urn:btih:..."
+
+# 使用 Cookie 下载 B站大会员视频
+UniversalVideoDownloader -c <url> -C firefox
+
+# 指定下载目录
+UniversalVideoDownloader -c <url> -o ~/Videos
+
+# 合集模式
+UniversalVideoDownloader -c <url> -p
+
+# 显示详细日志
+UniversalVideoDownloader -c <url> -v
+```
+
+终端模式使用 ANSI 颜色输出，实时显示下载进度：
+```
+⬇ 42.3%  │  1.50MiB  │  2.50MiB/s  │  剩余 00:03
+```
+
+> 💡 终端模式不需要 Qt GUI 依赖，适合 SSH 远程服务器或脚本自动化
+
+### 基本下载（GUI）
 
 1. 在输入框粘贴视频链接（支持 B站、YouTube 等）
 2. 点击 **🔍 解析视频** 等待解析完成
