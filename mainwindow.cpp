@@ -449,7 +449,6 @@ void MainWindow::handleAnalyzeFinished(int exitCode, QProcess::ExitStatus exitSt
 // ============================================================
 void MainWindow::onDownloadClicked() {
     retryCount = 0;
-    currentUrl = urlInput->text().trimmed();
 
     if (DownloadUtils::isMagnetOrTorrent(currentUrl)) {
         startAria2cDownload(currentUrl);
@@ -643,6 +642,11 @@ void MainWindow::handleDownloadFinished(int exitCode, QProcess::ExitStatus exitS
         logMessage("🎉 下载任务圆满完成！");
         retryCount = 0;
     } else {
+        QString errorOutput = QString::fromUtf8(downloadProcess->readAllStandardError());
+        if (!errorOutput.isEmpty()) {
+            logMessage("❌ yt-dlp 错误输出: " + errorOutput.trimmed());
+        }
+        
         if (retryCount < MAX_RETRIES) {
             retryCount++;
             logMessage(QString("⚠️ 下载中断，%1 秒后进行第 %2/%3 次重试（支持断点续传）...")
