@@ -28,6 +28,9 @@ int main(int argc, char *argv[]) {
 
     // GUI 模式：标准 Qt 窗口
     QApplication app(argc, argv);
+    app.setApplicationName("Video Downloader");
+    app.setOrganizationName("UniversalVideoDownloader");
+    app.setApplicationDisplayName("Video Downloader");
     MainWindow w;
     w.show();
     return app.exec();

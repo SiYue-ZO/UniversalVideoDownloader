@@ -3,6 +3,7 @@
 #include "platformutils.h"
 #include "toolmanager.h"
 #include "url_extractor.h"
+#include <QApplication>
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
@@ -12,6 +13,8 @@
 #include <QJsonObject>
 #include <QLabel>
 #include <QMessageBox>
+#include <QEvent>
+#include <QStyleHints>
 #include <QTimer>
 #include <QUrl>
 #include <QVBoxLayout>
@@ -27,9 +30,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
     QWidget *centralWidget = new QWidget(this);
     QVBoxLayout *mainLayout = new QVBoxLayout(centralWidget);
+    mainLayout->setContentsMargins(20, 20, 20, 20);
+    mainLayout->setSpacing(16);
 
     // 第一行：URL、Cookie 来源 与 解析按钮
     QHBoxLayout *urlLayout = new QHBoxLayout();
+    urlLayout->setSpacing(8);
     urlLayout->addWidget(new QLabel("网页地址:"));
     urlInput = new QLineEdit();
     urlInput->setPlaceholderText("输入视频链接、magnet 链接或 .torrent 文件路径");
@@ -57,6 +63,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
     // 第二行：视频选择（如果有多视频/合集）、画质选择、文件名、下载按钮、停止按钮
     QHBoxLayout *downloadLayout = new QHBoxLayout();
+    downloadLayout->setSpacing(8);
     
     videoLabel = new QLabel("选择视频:");
     videoBox = new QComboBox();
@@ -80,27 +87,27 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     downloadLayout->addWidget(downloadBtn);
 
     stopBtn = new QPushButton("⏹ 停止");
+    stopBtn->setObjectName("stopBtn");
     stopBtn->setEnabled(false);
-    stopBtn->setStyleSheet("QPushButton:enabled { color: red; }");
     downloadLayout->addWidget(stopBtn);
     mainLayout->addLayout(downloadLayout);
 
     QHBoxLayout *progressLayout = new QHBoxLayout();
+    progressLayout->setSpacing(8);
     progressBar = new QProgressBar();
     progressBar->setRange(0, 100);
     progressBar->setValue(0);
     progressLayout->addWidget(progressBar, 1);
 
     statusLabel = new QLabel("");
+    statusLabel->setObjectName("statusLabel");
     statusLabel->setMinimumWidth(280);
-    statusLabel->setStyleSheet("color: #888; font-size: 12px;");
     progressLayout->addWidget(statusLabel);
     mainLayout->addLayout(progressLayout);
 
     logConsole = new QTextEdit();
+    logConsole->setObjectName("logConsole");
     logConsole->setReadOnly(true);
-    logConsole->setStyleSheet(
-        "background-color: #1e1e1e; color: #d4d4d4; font-family: 'Menlo';");
     mainLayout->addWidget(logConsole);
 
     setCentralWidget(centralWidget);
@@ -156,6 +163,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
             this, &MainWindow::onUrlExtractFailed);
     connect(urlExtractor, &UrlExtractor::errorOccurred,
             this, &MainWindow::onUrlExtractError);
+
+    applySystemTheme();
 }
 
 MainWindow::~MainWindow() {}
@@ -760,4 +769,52 @@ void MainWindow::handleProcessError(QProcess::ProcessError error) {
         logMessage("❌ 引擎启动失败，请确保系统已安装 yt-dlp、ffmpeg 和 aria2c。");
     }
     setDownloadUIEnabled(true);
+}
+
+// ============================================================
+// macOS 深色/白天模式自适应
+// ============================================================
+void MainWindow::applySystemTheme() {
+    bool dark = (QApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark);
+
+    if (dark) {
+        logConsole->setStyleSheet(
+            "QTextEdit#logConsole {"
+            "  background-color: #1e1e1e;"
+            "  color: #d4d4d4;"
+            "  font-family: 'SF Mono', 'Menlo', monospace;"
+            "  font-size: 13px;"
+            "  border: none;"
+            "  padding: 8px;"
+            "}"
+        );
+        stopBtn->setStyleSheet(
+            "QPushButton#stopBtn:enabled { color: #ff6b6b; }"
+            "QPushButton#stopBtn:disabled { color: #665555; }"
+        );
+        statusLabel->setStyleSheet("color: #aaaaaa; font-size: 13px;");
+    } else {
+        logConsole->setStyleSheet(
+            "QTextEdit#logConsole {"
+            "  background-color: #f8f8f5;"
+            "  color: #2c2c2c;"
+            "  font-family: 'SF Mono', 'Menlo', monospace;"
+            "  font-size: 13px;"
+            "  border: 1px solid #e0e0e0;"
+            "  padding: 8px;"
+            "}"
+        );
+        stopBtn->setStyleSheet(
+            "QPushButton#stopBtn:enabled { color: #d32f2f; }"
+            "QPushButton#stopBtn:disabled { color: #cccccc; }"
+        );
+        statusLabel->setStyleSheet("color: #888888; font-size: 13px;");
+    }
+}
+
+void MainWindow::changeEvent(QEvent *event) {
+    if (event->type() == QEvent::ThemeChange) {
+        applySystemTheme();
+    }
+    QMainWindow::changeEvent(event);
 }

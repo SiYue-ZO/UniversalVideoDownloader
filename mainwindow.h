@@ -10,6 +10,8 @@
 #include <QProcess>
 #include <QMap>
 #include <QCheckBox>
+#include <QEvent>
+#include <QStyleHints>
 
 class QLabel;
 
@@ -22,6 +24,9 @@ class MainWindow : public QMainWindow {
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+
+protected:
+    void changeEvent(QEvent *event) override;
 
 private slots:
     void onAnalyzeClicked();
@@ -85,6 +90,7 @@ private:
     ToolManager *toolManager;
     UrlExtractor *urlExtractor;
 
+    void applySystemTheme();
     void logMessage(const QString &msg);
     void setupToolManager();
     void startYtdlpAnalyze();
